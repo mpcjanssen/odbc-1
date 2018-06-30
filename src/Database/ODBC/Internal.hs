@@ -524,6 +524,17 @@ getData dbc stmt i col =
               Just {} -> do
                 !d <- fmap DoubleValue (peek floatPtr)
                 pure (Just d))
+     | colType == sql_numeric ->
+       withMalloc
+         (\intPtr -> do
+            mlen <-
+              getTypedData dbc stmt sql_c_long i (coerce intPtr) (SQLLEN 4)
+            case mlen of
+              Nothing -> pure Nothing
+              Just {} ->
+                fmap
+                  (Just . IntValue . fromIntegral)
+                  (peek (intPtr :: Ptr Int32)))
      | colType == sql_integer ->
        withMalloc
          (\intPtr -> do
@@ -994,8 +1005,8 @@ sql_no_total = (-4)
 sql_char :: SQLSMALLINT
 sql_char = 1
 
--- sql_numeric :: SQLSMALLINT
--- sql_numeric = 2
+sql_numeric :: SQLSMALLINT
+sql_numeric = 2
 
 sql_decimal :: SQLSMALLINT
 sql_decimal = 3
